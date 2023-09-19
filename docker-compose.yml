@@ -1,0 +1,47 @@
+version: '3'
+
+networks:
+  project:
+    name: ${NETWORK_NAME}
+    driver: bridge
+      
+services:
+  nginx:
+    build:
+      context: ./compose
+      dockerfile: nginx.dockerfile
+      args:
+        - UID=${UID:-1000}
+        - GID=${GID:-1000}
+        - NETWORK_NAME=${NETWORK_NAME}
+    ports:
+      - "${APP_PORT}:80"
+      - "${APP_HTTPS_PORT}:443"
+    volumes:
+      - ./src:/var/www/html:delegated
+      - ./compose/nginx:/etc/nginx/conf.d:delegated
+    networks:
+       - project
+    depends_on:
+      - php
+      - redis
+
+  php:
+    build:
+      context: ./compose
+      dockerfile: php.dockerfile
+      args:
+        - UID=${UID:-1000}
+        - GID=${GID:-1000}
+        - NETWORK_NAME=${NETWORK_NAME}
+    volumes:
+      - ./src:/var/www/html:delegated
+      - ./front:/var/www/front:delegated
+    networks:
+      - project
+
+  redis:
+    image: redis:alpine
+    networks:
+      - project
+
